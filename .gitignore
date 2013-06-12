@@ -1,3 +1,5 @@
 *~
+*.map
 html/js/
 html/lib/
+*.komodoproject

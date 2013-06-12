@@ -1,15 +1,19 @@
 # Copyright (c) 2013 Taher Haveliwala
 # All Rights Reserved
 #
+# See LICENSE for licensing
+#
 # graph-builder.coffee
 #
 
-this.Keys =
+Keys =
     SPACE: " ".charCodeAt(0)
 
 class Edge
     srcNode: null
     dstNode: null
+    
+    value: null
     
     # visual components of an edge
     line: null
@@ -25,34 +29,70 @@ class Edge
         )
         @line.selectable = false
 
+        @arrow = new fabric.Triangle(
+                width: 15
+                height: 20
+                visible: false
+            )
+        @arrow.selectable = false
+        
     setDestNode: (dstNode) ->
         @dstNode = dstNode
+        @arrow.set(visible: true)
+
+        # update the arrow position/orientation
+        @update()
         
     setDestPos: (dstPos) ->
         @line.set(
             x2: dstPos.x
             y2: dstPos.y
         )
-        
+    
     sendBackwards: ->
         @line.sendBackwards()
         
     sendToBack: ->
         @line.sendToBack()
+        
+    bringForwards: ->
+        @line.bringForwards()
+        
+    bringToFront: ->
+        @line.bringToFront()
 
     # call when nodes or nodes' underlying position params have changed
     update: ->
         # update line/arrow params
+        [x1, y1, x2, y2] = [@srcNode.left(),
+                            @srcNode.top(),
+                            @dstNode.left(),
+                            @dstNode.top()]
+        
+        angle = util.getAngle(y2-y1, x2-x1)
+        
+        x1 += Math.cos(angle) * @srcNode.radius()
+        y1 += Math.sin(angle) * @srcNode.radius()
+        
+        x2 -= Math.cos(angle) * (@dstNode.radius() + @arrow.getHeight()/2)
+        y2 -= Math.sin(angle) * (@dstNode.radius() + @arrow.getHeight()/2)
+        
         @line.set(
-            x1: @srcNode.left()
-            y1: @srcNode.top()
-            x2: @dstNode.left()
-            y2: @dstNode.top()
+            x1: x1
+            y1: y1
+            x2: x2
+            y2: y2
+        )
+        
+        @arrow.set(
+            left: x2
+            top: y2
+            angle: util.toDeg(angle)+90
         )
 
     addTo: (canvas) ->
         canvas.add(@line)
-#        canvas.add(@arrow)
+        canvas.add(@arrow)
         
     removeFrom: (canvas) ->
         canvas.remove(@line)
@@ -62,16 +102,19 @@ class Node
     id: null
     edges: null
     
+    value: null  # value determines node's graphical diameter
+    
     # visual object for node (fabric Group)
     uiElt: null
     
     constructor: (id, left, top) ->
         @id = id
         @edges = []
-
+        @value = 1
+        
         circle = new fabric.Circle(
             strokeWidth: 1
-            radius: Node.RADIUS
+            radius: @value * Node.RADIUS
             fill: 'green'
             stroke: 'black'
         )
@@ -97,23 +140,29 @@ class Node
         
     left: (val) ->
         if val?
-            @uiElt.left = val
+            @uiElt.set({left: val})
         else
-            return @uiElt.left
+            return @uiElt.getLeft()
         
     top: (val) ->
         if val?
-            @uiElt.top = val
+            @uiElt.set({top: val})
         else
-            return @uiElt.top
+            return @uiElt.getTop()
+    
+    radius: () ->
+        return @uiElt.item(1).getRadiusX()
+    
+    bringToFront: ->
+        @uiElt.bringToFront()
+        
+    outdegree: ->
+        return @edges.length
         
 
 class GraphBuilder
     canvas: null
     activeEdge: null
-
-    nodes: {}
-    edges: {}
     
     constructor: (@WIDTH, @HEIGHT, @RADIUS) ->
         Node.RADIUS = RADIUS
@@ -148,7 +197,6 @@ class GraphBuilder
     # todo: don't add duplicate edges
     completeEdge: (edge, dstNode) ->
         edge.setDestNode(dstNode)
-        console.log(edge)
         edge.srcNode.edges.push(edge)
         dstNode.edges.push(edge)
         edge.update()
@@ -179,12 +227,12 @@ class GraphBuilder
     handleSelected: (evt) =>
         console.log('object:selected')
 
-        nodeElt = evt.target
-        node = nodeElt._node
+        if not evt.target._node?
+            return
         
-        nodeElt.bringToFront()
-
-        console.log(node)
+        node = evt.target._node
+        
+        node.bringToFront()
 
         if @activeEdge
             return if @activeEdge.srcNode is node  # no self loops yet
@@ -213,8 +261,10 @@ class GraphBuilder
         # if an object is being dragged, end the edge drawing mode
         @cancelActiveEdge()
         
-        nodeElt = evt.target
-        node = nodeElt._node
+        if not evt.target._node?
+            return
+        
+        node = evt.target._node
         
         if node.left() > @WIDTH then node.left(@WIDTH)
         if node.top() > @HEIGHT then node.top(@HEIGHT)
@@ -231,11 +281,8 @@ class GraphBuilder
         @activeEdge.setDestPos(ptr)
         @canvas.renderAll()
         
-    
-    
+
 $ ->
-    gVis = new GraphBuilder(640, 480, 20)
-    
-    gVis.setupHandlers()
-    
+    window.gGraphBuilder = new GraphBuilder(640, 480, 20)
+    gGraphBuilder.setupHandlers()
     
