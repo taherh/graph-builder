@@ -172,10 +172,12 @@ class Node
 
 class GraphBuilder
     canvas: null
+    graph: null
     activeEdge: null
     
     constructor: (@WIDTH, @HEIGHT, @RADIUS) ->
         Node.RADIUS = RADIUS
+        @graph = new Graph()
         
         @canvas = new fabric.Canvas('canvas')
         @canvas.setWidth(@WIDTH)
@@ -192,7 +194,7 @@ class GraphBuilder
         # setup dom handlers for canvas
         $('body').on('keydown', @handleKeyDown)
         
-        # setup canvas handlers
+        # setup fabric canvas ui handlers
         @canvas.on('selection:created', @handleSelectionCreated)
         @canvas.on('object:added', @handleAdded)
         @canvas.on('object:selected', @handleSelected)
@@ -200,7 +202,25 @@ class GraphBuilder
         @canvas.on('mouse:up', () => console.log('mouse:up') )
         @canvas.on('object:moving', @handleMoving)
         
-    
+        # setup custom handlers to listen to GraphBuilder events
+        @canvas.on('gb:new-node', (evt) =>
+            @graph.addNode(evt.nodeId)
+        )
+        @canvas.on('gb:new-edge', (evt) =>
+            @graph.addEdge([evt.srcNode, evt.dstNode])
+        )
+        @canvas.on('gb:del-node', (evt) =>
+            @graph.delNode(evt.nodeId)
+        )
+        @canvas.on('gb:del-edge', (evt) =>
+            @graph.delEdge([evt.x, evt.y])
+        )
+        
+        @canvas.on('gb:new-node', @updateMatrix)
+        @canvas.on('gb:new-edge', @updateMatrix)
+        @canvas.on('gb:del-node', @updateMatrix)
+        @canvas.on('gb:del-edge', @updateMatrix)
+
     _idCtr: 0
     makeNode: (left, top) ->
         return new Node(@_idCtr++, left, top)
@@ -211,6 +231,13 @@ class GraphBuilder
         edge.srcNode.edges.push(edge)
         dstNode.edges.push(edge)
         edge.update()
+        
+        @canvas.trigger('gb:new-edge', {
+                                srcNode: edge.srcNode.id
+                                dstNode: edge.dstNode.id
+                            }
+                        )
+        
 
     # add node to graph if corresponding keystate is on
     handleMouseDown: (evt) =>
@@ -223,6 +250,8 @@ class GraphBuilder
     addNode: (x, y) =>
         node = @makeNode(x, y)
         node.addTo(@canvas)
+        
+        @canvas.trigger('gb:new-node', { nodeId: node.id })
 
     # clear the graph
     handleClearGraph: (evt) =>
@@ -301,10 +330,15 @@ class GraphBuilder
         @canvas.renderAll()
             
 
+    # bound to 'mouse:move' only when there's an active edge being drawn
     handleMouseMoved: (evt) =>
         ptr = @canvas.getPointer(evt.e)
         @activeEdge.setDestPos(ptr)
         @canvas.renderAll()
+
+    updateMatrix: () =>
+        console.log('updating matrix')
+        $('#matrix').text(@graph.matrixAsText())
 
 # Export GraphBuilder
 exports = this

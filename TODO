@@ -1,2 +1,5 @@
 X add arrows to edges
-o generate matrix corresponding to graph
+X generate matrix corresponding to graph
+
+o add ability to delete nodes, edges
+o better separation of components vs. app
