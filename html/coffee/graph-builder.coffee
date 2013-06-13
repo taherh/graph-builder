@@ -176,6 +176,7 @@ class GraphBuilder
     
     constructor: (@WIDTH, @HEIGHT, @RADIUS) ->
         Node.RADIUS = RADIUS
+        
         @canvas = new fabric.Canvas('canvas')
         @canvas.setWidth(@WIDTH)
         @canvas.setHeight(@HEIGHT)
@@ -185,7 +186,7 @@ class GraphBuilder
     
     setupHandlers: ->
         # setup dom handlers for control buttons
-        $('#newnode').on('click', @handleNewNode)
+        $('#newnode').on('click', () => @addNode(20, 20))
         $('#clear').on('click', @handleClearGraph)
         
         # setup dom handlers for canvas
@@ -195,7 +196,7 @@ class GraphBuilder
         @canvas.on('selection:created', @handleSelectionCreated)
         @canvas.on('object:added', @handleAdded)
         @canvas.on('object:selected', @handleSelected)
-        @canvas.on('mouse:down', () => console.log('mouse:down') )
+        @canvas.on('mouse:down', @handleMouseDown)
         @canvas.on('mouse:up', () => console.log('mouse:up') )
         @canvas.on('object:moving', @handleMoving)
         
@@ -211,9 +212,16 @@ class GraphBuilder
         dstNode.edges.push(edge)
         edge.update()
 
+    # add node to graph if corresponding keystate is on
+    handleMouseDown: (evt) =>
+        console.log('mouse:down')
+        if evt.e.shiftKey
+            @cancelActiveEdge()
+            @addNode(evt.e.offsetX, evt.e.offsetY)
+            
     # add new node to graph
-    handleNewNode: (evt) =>
-        node = @makeNode(20, 20)
+    addNode: (x, y) =>
+        node = @makeNode(x, y)
         node.addTo(@canvas)
 
     # clear the graph
@@ -227,7 +235,7 @@ class GraphBuilder
         switch e.which
             when Keys.SPACE
                 @cancelActiveEdge()
-    
+
     # when user selects a set of nodes, don't show resize controls
     handleSelectionCreated: (evt) =>
         @canvas.getActiveGroup().hasControls = false
