@@ -22,8 +22,8 @@ class Edge
     constructor: (srcNode) ->
         @srcNode = srcNode
 
-        @line = new fabric.Line([srcNode.left(), srcNode.top(),
-                                 srcNode.left(), srcNode.top()],
+        @line = new fabric.Line([srcNode.getLeft(), srcNode.getTop(),
+                                 srcNode.getLeft(), srcNode.getTop()],
             stroke: 'black'
             strokeWidth: 3
         )
@@ -64,10 +64,10 @@ class Edge
     # call when nodes or nodes' underlying position params have changed
     update: ->
         # update line/arrow params
-        [x1, y1, x2, y2] = [@srcNode.left(),
-                            @srcNode.top(),
-                            @dstNode.left(),
-                            @dstNode.top()]
+        [x1, y1, x2, y2] = [@srcNode.getLeft(),
+                            @srcNode.getTop(),
+                            @dstNode.getLeft(),
+                            @dstNode.getTop()]
         
         angle = util.getAngle(y2-y1, x2-x1)
         
@@ -138,17 +138,25 @@ class Node
     removeFrom: (canvas) ->
         canvas.remove(@uiElt)
         
-    left: (val) ->
-        if val?
-            @uiElt.set({left: val})
+    getLeft: () ->
+        grp = gGraphBuilder.canvas.getActiveGroup()
+        if grp?.contains(@uiElt)
+            return grp.getLeft() + @uiElt.getLeft()
         else
             return @uiElt.getLeft()
-        
-    top: (val) ->
-        if val?
-            @uiElt.set({top: val})
+
+    getTop: () ->
+        grp = gGraphBuilder.canvas.getActiveGroup()
+        if grp?.contains(@uiElt)
+            return grp.getTop() + @uiElt.getTop()
         else
             return @uiElt.getTop()
+
+    setLeft: (val) ->
+        @uiElt.set({left: val})    
+
+    setTop: (val) ->
+        @uiElt.set({top: val})        
     
     radius: () ->
         return @uiElt.item(1).getRadiusX()
@@ -158,7 +166,9 @@ class Node
         
     outdegree: ->
         return @edges.length
-        
+    
+    updateEdges: (node) ->
+        edge.update() for edge in @edges
 
 class GraphBuilder
     canvas: null
@@ -208,9 +218,9 @@ class GraphBuilder
 
     # clear the graph
     handleClearGraph: (evt) =>
-        @activeEdge = null
+        @cancelActiveEdge()
         @canvas.clear()
-        @canvas.off('mouse:move')
+        @_idCtr = 0
     
     # handle keydown events
     handleKeyDown: (e) =>
@@ -228,6 +238,7 @@ class GraphBuilder
         console.log('object:selected')
 
         if not evt.target._node?
+            @cancelActiveEdge()
             return
         
         node = evt.target._node
@@ -235,7 +246,11 @@ class GraphBuilder
         node.bringToFront()
 
         if @activeEdge
-            return if @activeEdge.srcNode is node  # no self loops yet
+            # no self loops yet
+            if @activeEdge.srcNode is node  
+                @cancelActiveEdge()
+                return
+            
             @completeEdge(@activeEdge, node)
             @activeEdge.sendToBack()
             @canvas.off('mouse:move')
@@ -260,29 +275,31 @@ class GraphBuilder
     handleMoving: (evt) =>
         # if an object is being dragged, end the edge drawing mode
         @cancelActiveEdge()
-        
-        if not evt.target._node?
-            return
-        
-        node = evt.target._node
-        
-        if node.left() > @WIDTH then node.left(@WIDTH)
-        if node.top() > @HEIGHT then node.top(@HEIGHT)
-        if node.left() < 0 then node.left(0)
-        if node.top() < 0 then node.top(0)
-            
-        for edge in node.edges
-            edge.update()
 
-        @canvas.renderAll()
+        target = evt.target
         
+        if target._node?
+            target._node.updateEdges()
+        else
+            target.forEachObject((obj) =>
+                obj._node?.updateEdges()
+            )
+
+        if target.getLeft() > @WIDTH then target.setLeft(@WIDTH)
+        if target.getTop() > @HEIGHT then target.setTop(@HEIGHT)
+        if target.getLeft() < 0 then target.setLeft(0)
+        if target.getTop() < 0 then target.setTop(0)
+            
+        @canvas.renderAll()
+            
+
     handleMouseMoved: (evt) =>
         ptr = @canvas.getPointer(evt.e)
         @activeEdge.setDestPos(ptr)
         @canvas.renderAll()
-        
 
-$ ->
-    window.gGraphBuilder = new GraphBuilder(640, 480, 20)
-    gGraphBuilder.setupHandlers()
+# Export GraphBuilder
+exports = this
+exports.GraphBuilder = GraphBuilder
+
     

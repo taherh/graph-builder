@@ -1,3 +1,11 @@
+# Copyright (c) 2013 Taher Haveliwala
+# All Rights Reserved
+#
+# See LICENSE for licensing
+#
+# util.coffee
+#
+
 window.util = util = {}
 
 util.sign = (x) ->
