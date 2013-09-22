@@ -8,6 +8,8 @@
 
 Keys =
     SPACE: " ".charCodeAt(0)
+    DEL: 46
+    BACKSPACE: 8
 
 class Edge
     srcNode: null
@@ -82,13 +84,13 @@ class Edge
             y1: y1
             x2: x2
             y2: y2
-        )
+        ).setCoords()
         
         @arrow.set(
             left: x2
             top: y2
             angle: util.toDeg(angle)+90
-        )
+        ).setCoords()
 
     addTo: (canvas) ->
         canvas.add(@line)
@@ -122,7 +124,7 @@ class Node
             fontSize: 30
         )
         
-        grp = new fabric.Group([id_text, circle],
+        grp = new fabric.Group([circle, id_text],
             left: left
             top: top
         )
@@ -137,6 +139,11 @@ class Node
         
     removeFrom: (canvas) ->
         canvas.remove(@uiElt)
+        
+    setActive: ->
+        @bringToFront()
+        
+    unsetActive: ->
         
     getLeft: () ->
         grp = gGraphBuilder.canvas.getActiveGroup()
@@ -159,7 +166,7 @@ class Node
         @uiElt.set({top: val})        
     
     radius: () ->
-        return @uiElt.item(1).getRadiusX()
+        return @uiElt.item(0).getRadiusX()
     
     bringToFront: ->
         @uiElt.bringToFront()
@@ -174,6 +181,7 @@ class GraphBuilder
     canvas: null
     graph: null
     activeEdge: null
+    currActiveNode: null
     
     constructor: (@WIDTH, @HEIGHT, @RADIUS) ->
         Node.RADIUS = RADIUS
@@ -189,6 +197,7 @@ class GraphBuilder
     setupHandlers: ->
         # setup dom handlers for control buttons
         $('#newnode').on('click', () => @addNode(20, 20))
+        $('#delete').on('click', @handleDelete)
         $('#clear').on('click', @handleClearGraph)
         
         # setup dom handlers for canvas
@@ -197,12 +206,11 @@ class GraphBuilder
         # setup fabric canvas ui handlers
         @canvas.on('selection:created', @handleSelectionCreated)
         @canvas.on('object:added', @handleAdded)
-        @canvas.on('object:selected', @handleSelected)
         @canvas.on('mouse:down', @handleMouseDown)
-        @canvas.on('mouse:up', () => console.log('mouse:up') )
         @canvas.on('object:moving', @handleMoving)
         
         # setup custom handlers to listen to GraphBuilder events
+        # and update graph model accordingly
         @canvas.on('gb:new-node', (evt) =>
             @graph.addNode(evt.nodeId)
         )
@@ -220,6 +228,7 @@ class GraphBuilder
         @canvas.on('gb:new-edge', @updateMatrix)
         @canvas.on('gb:del-node', @updateMatrix)
         @canvas.on('gb:del-edge', @updateMatrix)
+        @canvas.on('gb:clear', @updateMatrix)
 
     _idCtr: 0
     makeNode: (left, top) ->
@@ -239,48 +248,21 @@ class GraphBuilder
                         )
         
 
-    # add node to graph if corresponding keystate is on
     handleMouseDown: (evt) =>
         console.log('mouse:down')
+
         if evt.e.shiftKey
             @cancelActiveEdge()
             @addNode(evt.e.offsetX, evt.e.offsetY)
-            
-    # add new node to graph
-    addNode: (x, y) =>
-        node = @makeNode(x, y)
-        node.addTo(@canvas)
-        
-        @canvas.trigger('gb:new-node', { nodeId: node.id })
-
-    # clear the graph
-    handleClearGraph: (evt) =>
-        @cancelActiveEdge()
-        @canvas.clear()
-        @_idCtr = 0
-    
-    # handle keydown events
-    handleKeyDown: (e) =>
-        switch e.which
-            when Keys.SPACE
-                @cancelActiveEdge()
-
-    # when user selects a set of nodes, don't show resize controls
-    handleSelectionCreated: (evt) =>
-        @canvas.getActiveGroup().hasControls = false
-        
-    handleAdded: (evt) =>
-        
-    handleSelected: (evt) =>
-        console.log('object:selected')
-
-        if not evt.target._node?
-            @cancelActiveEdge()
             return
+
+        if not evt.target?._node?
+            @cancelActiveEdge()
+            return true
         
         node = evt.target._node
         
-        node.bringToFront()
+        @setActiveNode(node)
 
         if @activeEdge
             # no self loops yet
@@ -302,26 +284,75 @@ class GraphBuilder
             @activeEdge = edge
 
             @canvas.on('mouse:move', @handleMouseMoved)
+
+    # add new node to graph
+    addNode: (x, y) =>
+        node = @makeNode(x, y)
+        node.addTo(@canvas)
+        
+        @canvas.trigger('gb:new-node', { nodeId: node.id })
+
+    # delete an edge or node
+    handleDelete: (evt) =>
+        @cancelActiveEdge()
+        # todo
+        
+    # clear the graph
+    handleClearGraph: (evt) =>
+        @cancelActiveEdge()
+        @canvas.clear()
+        @graph.clear()
+        @canvas.trigger('gb:clear')
+        @_idCtr = 0
+    
+    # handle keydown events
+    handleKeyDown: (e) =>
+        console.log('keydown')
+        switch e.which
+            when Keys.SPACE
+                @cancelActiveEdge()
+            when Keys.DEL, Keys.BACKSPACE
+                @cancelActiveEdge()
+#                @deleteSelectedNodes()  # todo
+
+        return false
+
+    # when user selects a set of nodes, don't show resize controls
+    handleSelectionCreated: (evt) =>
+        console.log("handleSelectionCreated()")
+        @canvas.getActiveGroup().hasControls = false
+        
+    handleAdded: (evt) =>
         
     cancelActiveEdge: ->
         if @activeEdge
             @activeEdge.removeFrom(@canvas)
             @canvas.off('mouse:move')
             @activeEdge = null
-            
+    
+    setActiveNode: (node) ->
+        if @currActiveNode?
+            @currActiveNode.unsetActive()
+
+        node.setActive()
+        @currActiveNode = node        
+
     handleMoving: (evt) =>
         # if an object is being dragged, end the edge drawing mode
         @cancelActiveEdge()
 
         target = evt.target
         
-        if target._node?
-            target._node.updateEdges()
-        else
-            target.forEachObject((obj) =>
-                obj._node?.updateEdges()
-            )
+        # redraw edges
+        if target.type is 'group'
+            if target._node?  # it's a single node
+                target._node.updateEdges()
+            else  # otherwise it's a group selection of nodes
+                target.forEachObject((obj) =>
+                    obj._node?.updateEdges()
+                )
 
+        # keep target within bounds of canvas
         if target.getLeft() > @WIDTH then target.setLeft(@WIDTH)
         if target.getTop() > @HEIGHT then target.setTop(@HEIGHT)
         if target.getLeft() < 0 then target.setLeft(0)
@@ -338,7 +369,13 @@ class GraphBuilder
 
     updateMatrix: () =>
         console.log('updating matrix')
-        $('#matrix').text(@graph.matrixAsText())
+        matrix_text = @graph.matrixAsText()
+        $('#matrix').text(matrix_text)
+        $('#matrix_download').attr('download', "matrix.dat").
+                              attr('title', "matrix.dat").
+                              attr('href',
+                                    'data:text/plain;charset=utf-8,' +
+                                        encodeURIComponent(matrix_text))
 
 # Export GraphBuilder
 exports = this

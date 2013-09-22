@@ -4,8 +4,8 @@
     <title>GraphBuilder Demo</title>
     <link rel="stylesheet" href="css/style.css" type="text/css" />
     <script src="http://code.jquery.com/jquery-1.9.1.js" type="application/javascript"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/fabric.js/1.1.0/fabric.all.min.js" type="application/javascript"></script>
-<!--    <script src="lib/js/fabric.js" type="application/javascript"></script>  -->
+<!--    <script src="//cdnjs.cloudflare.com/ajax/libs/fabric.js/1.2.0/fabric.all.min.js" type="application/javascript"></script>  -->
+    <script src="lib/js/fabric-1.2.0.js" type="application/javascript"></script>
     <script src="js/util.js" type="application/javascript"></script>
     <script src="js/graph.js" type="application/javascript"></script>
     <script src="js/graph-builder.js" type="application/javascript"></script>
@@ -18,19 +18,34 @@
     </script>
 </head>
 <body>
-  <h1>GraphBuilder Demo</h1>
+  <a href="https://github.com/taherh/graph-builder"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png" alt="Fork me on GitHub"></a>
 
+  <h1>GraphBuilder Demo</h1>
 
   <canvas id="canvas"></canvas>
 
-  <div class="matrix_display">
-    <pre id="matrix">NULL</pre>
-  </div>
-
-
   <div class="controls">
-    <input type="button" value="New Node" id="newnode" />
-    <input type="button" value="Clear" id="clear" />
+<!--    <input type="button" value="New Node" id="newnode" />  -->
+    <input type="button" value="Delete" id="delete" />
+    <input type="button" value="Clear Graph" id="clear" />
+  </div>
+  
+  <div>
+    <div class="instructions">
+      <h3>Instructions:</h3>
+      <ul>
+        <li>Shift-Click to add a new node</li>
+        <li>Click on source node to start edge, click on destination node to complete edge.</li>
+        <li>Hit Space to cancel active edge.</li>
+      </ul>
+    </div>
+
+    <div class="matrix_display">
+      <pre id="matrix">[]</pre>
+      <a id="matrix_download" href="#">
+        <input type="button" value="Download" id="download">
+      </a>
+    </div>
   </div>
   
 </body>
