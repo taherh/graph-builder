@@ -6,36 +6,50 @@
 # graph.coffee
 #
 
-# Representation of graph
+# Abstract representation of graph
 class Graph
-    nodes: null
+    numNodes: null
     edges: null
-    
+
     constructor: ->
         @clear()
-    
+
     clear: ->
-        @nodes = []
+        @numNodes = 0
         @edges = []
-        
+
     # node is an integer
     addNode: (node) ->
-        @nodes.push(node)
-    
+        @numNodes++
+
     # edge is an array of the form [node_1, node_2]
     addEdge: (edge) ->
         @edges.push(edge)
-        
+
     delNode: (node) ->
-        util.remove(@nodes, node)
-        # todo: renumber nodes in edge list
-        
+        edgeMatchPred = (edge) ->
+            return (edge[0] == node or edge[1] == node)
+        @edges = _.reject(@edges, edgeMatchPred)
+
     delEdge: (edge) ->
-#        util.remove(@edges, edge)
+        console.log("delEdge", edge)
+        edgeEQPred = (otherEdge) ->
+            return (edge[0] == otherEdge[0] and edge[1] == otherEdge[1])
+        util.removeAt(@edges, util.find(@edges, edgeEQPred))
+
+    compact: (remap) ->
+        for edge in @edges
+            edge[0] = remap[edge[0]]
+            edge[1] = remap[edge[1]]
         
+        @numNodes = _.reduce(remap,
+                            (memo, id) -> memo + (id? ? 0 : 1),
+                            0)
+        console.log("numNodes:", @numNodes)
+
     # return matrix corresponding to current graph
     matrix: ->
-        len = @nodes.length
+        len = @numNodes
         # create nXn matrix initialized to [0]
         m = for i in [0...len]
                 for j in [0...len]

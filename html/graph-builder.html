@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GraphBuilder Demo</title>
+    <title>GraphBuilder</title>
     <link rel="stylesheet" href="css/style.css" type="text/css" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js" type="application/javascript"></script>
     <script src="http://code.jquery.com/jquery-1.9.1.js" type="application/javascript"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/fabric.js/1.2.0/fabric.all.min.js" type="application/javascript"></script>
 <!--    <script src="lib/js/fabric-1.2.0.js" type="application/javascript"></script>  -->
     <script src="js/util.js" type="application/javascript"></script>
+    <script src="js/ui_edge.js" type="application/javascript"></script>
+    <script src="js/ui_node.js" type="application/javascript"></script>
     <script src="js/graph.js" type="application/javascript"></script>
     <script src="js/graph-builder.js" type="application/javascript"></script>
     <script type="application/x-javascript">
@@ -25,18 +28,18 @@
   <canvas id="canvas"></canvas>
 
   <div class="controls">
-<!--    <input type="button" value="New Node" id="newnode" />  -->
-    <input type="button" value="Delete" id="delete" />
-    <input type="button" value="Clear Graph" id="clear" />
+    <input type="button" name="compact" value="Compact Ids" id="compact" />
+    &nbsp;
+    <input type="button" name="clear" value="Clear Graph" id="clear" />
   </div>
   
   <div>
     <div class="instructions">
       <h3>Instructions:</h3>
       <ul>
-        <li>Shift-Click to add a new node</li>
+        <li><em>Shift-Click</em> to add a new node</li>
         <li>Click on source node to start edge, click on destination node to complete edge.</li>
-        <li>Hit Space to cancel active edge.</li>
+        <li>To delete nodes, keep the the <em>Del</em> key pressed while clicking nodes or edges.</li>
       </ul>
     </div>
 

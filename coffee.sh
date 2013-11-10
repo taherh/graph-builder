@@ -1,4 +1,4 @@
 #!/bin/bash
-
-coffee -o html/js/ -cmw html/coffee/
+cd html
+coffee -o js/ -cmw coffee/ 
 
