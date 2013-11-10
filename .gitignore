@@ -1,6 +1,6 @@
 *~
 *.map
-html/js/*
-!html/js/README
-html/lib/
+src/js/*
+!src/js/README
+src/lib/
 *.komodoproject

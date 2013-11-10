@@ -1,4 +1,4 @@
 #!/bin/bash
-cd html
+cd src
 coffee -o js/ -cmw coffee/ 
 
