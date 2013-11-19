@@ -26,7 +26,7 @@ class GraphBuilder
     
     constructor: (@WIDTH, @HEIGHT, @RADIUS) ->
         Node.RADIUS = RADIUS
-        @graph = new Graph()
+        @graph = new GraphModel()
         @nodeList = []
         @nodeDelList = []
         
@@ -36,6 +36,8 @@ class GraphBuilder
         @canvas.setBackgroundColor("rgb(150,150,150)")
         
         @_addHoverEvent(@canvas)
+        
+        @matrixView = new MatrixView()
         
         @canvas.renderAll()
     
@@ -60,7 +62,7 @@ class GraphBuilder
         # setup custom handlers to listen to GraphBuilder events
         # and update abstract graph model accordingly
         @canvas.on('gb:new-node', (evt) =>
-            @graph.addNode(evt.nodeId)
+            @graph.newNode(evt.x, evt.y)
         )
         @canvas.on('gb:new-edge', (evt) =>
             @graph.addEdge([evt.srcNode, evt.dstNode])
@@ -112,10 +114,7 @@ class GraphBuilder
         )(canvas.findTarget)
     
 
-    makeNode: (left, top) ->
-        return new Node(@_idCtr++, left, top)
-    
-    completeEdge: (edge, dstNode) ->
+     completeEdge: (edge, dstNode) ->
         edge.setDestNode(dstNode)
         edge.srcNode.addEdge(edge)
         dstNode.addEdge(edge)
@@ -213,11 +212,11 @@ class GraphBuilder
 
     # add new node to graph
     addNode: (x, y) ->
-        node = @makeNode(x, y)
+        node = new Node(@_idCtr++, x, y)
         @nodeList.push(node)
         node.display(@canvas)
 
-        @canvas.trigger('gb:new-node', { nodeId: node.id })
+        @canvas.trigger('gb:new-node', { nodeId: node.id, x: x, y: y })
 
     # delete a node or edge
     deleteGraphObj: (graphObj) ->
@@ -359,13 +358,13 @@ class GraphBuilder
 
     updateMatrix: () =>
         console.log('updating matrix')
-        matrix_text = @graph.matrixAsText()
-        $('#matrix').text(matrix_text)
+        matrixText = @matrixView.asText(@graph)
+        $('#matrix').text(matrixText)
         $('#matrix_download').attr('download', "matrix.dat")
                              .attr('title', "matrix.dat")
                              .attr('href',
                                     'data:text/plain;charset=utf-8,' +
-                                        encodeURIComponent(matrix_text))
+                                        encodeURIComponent(matrixText))
 
 # Export GraphBuilder
 exports = this

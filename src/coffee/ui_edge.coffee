@@ -39,12 +39,6 @@ class Edge
             )
         @arrow.selectable = false
         
-#        grp = new fabric.Group([@line, @arrow])
-#        grp.selectable = false
-#        grp._edge = this
-        
-#        @uiElt = grp
-        
         @line._edge = @arrow._edge = this
         
     setDestNode: (@dstNode) ->
