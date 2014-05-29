@@ -3,7 +3,7 @@
 #
 # See LICENSE for licensing
 #
-# ui_edge.coffee
+# edge-ui.coffee
 #
 
 class Edge
@@ -22,7 +22,7 @@ class Edge
     
     uiElt: null
     
-    constructor: (@srcNode) ->
+    constructor: (@srcNode, @canvas) ->
 
         @line = new fabric.Line([srcNode.getLeft(), srcNode.getTop(),
                                 srcNode.getLeft(), srcNode.getTop()],
@@ -109,7 +109,7 @@ class Edge
         @line.setStroke('black')
         @arrow.setFill('black')
 
-    display: (@canvas) ->
+    display: () ->
         @canvas.add(@line)
         @canvas.add(@arrow)
         

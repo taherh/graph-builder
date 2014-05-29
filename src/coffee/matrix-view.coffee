@@ -20,6 +20,7 @@ class MatrixView
         for edge in graph.edges
             m[edge[0]][edge[1]] = 1
     
+        console.log(m)
         return m
     
     # return text representation of matrix corresponding to current graph

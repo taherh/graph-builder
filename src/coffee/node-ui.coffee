@@ -3,7 +3,7 @@
 #
 # See LICENSE for licensing
 #
-# ui_node.coffee
+# node-ui.coffee
 #
 
 class Node
@@ -19,7 +19,7 @@ class Node
     # visual object for node (fabric Group)
     uiElt: null
     
-    constructor: (@id, left, top) ->
+    constructor: (@id, left, top, @canvas) ->
         @edges = []
         @value = 1
 
@@ -43,20 +43,23 @@ class Node
 
         @uiElt = grp
         
+        @canvas.on('gb:compact', @compactHandler)
+        @canvas.on('gb:clear', @remove)
+        
     setActive: ->
         @bringToFront()
         
     unsetActive: ->
         
     getLeft: () ->
-        grp = gGraphBuilder.canvas.getActiveGroup()
+        grp = @canvas.getActiveGroup()
         if grp?.contains(@uiElt)
             return grp.getLeft() + @uiElt.getLeft()
         else
             return @uiElt.getLeft()
 
     getTop: () ->
-        grp = gGraphBuilder.canvas.getActiveGroup()
+        grp = @canvas.getActiveGroup()
         if grp?.contains(@uiElt)
             return grp.getTop() + @uiElt.getTop()
         else
@@ -89,7 +92,7 @@ class Node
     deactivateHover: () ->
         @uiElt.item(0).setFill('green')
 
-    display: (@canvas) ->
+    display: () ->
         @canvas.add(@uiElt)
         
     hide: () ->
@@ -109,10 +112,16 @@ class Node
         @id = id
         @uiElt.item(1).setText(id.toString())
 
-    remove: () ->
+    remove: () =>
         edge.remove(node: this) for edge in @edges
         @hide()
         @uiElt.destroy()
+        @canvas.off('gb:compact', @compactHandler)
+        @canvas.off('gb:clear', @remove)
+
+        
+    compactHandler: (evt) =>
+        @setId(evt.remap[@id])
 
 
 exports = this

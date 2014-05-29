@@ -8,24 +8,24 @@
 
 # Graph model
 class GraphModel
-    nodePositions: null
+    nodes: null
     edges: null
-
+    
     constructor: ->
         @clear()
 
     clear: ->
-        @nodePositions = []
+        @nodes = []
         @edges = []
 
     # node is an integer
     newNode: (x, y) ->
-        nodeId = @nodePositions.length
-        @nodePositions[nodeId] = { x: x, y: y }
+        nodeId = @nodes.length
+        @nodes[nodeId] = { x: x, y: y }
         return nodeId
 
     numNodes: () ->
-        return @nodePositions.length
+        return @nodes.length
 
     # edge is an array of the form [node_1, node_2]
     addEdge: (edge) ->
@@ -35,23 +35,37 @@ class GraphModel
         edgeMatchPred = (edge) ->
             return (edge[0] == node or edge[1] == node)
         @edges = _.reject(@edges, edgeMatchPred)
+        @nodes[node].del = true
 
     delEdge: (edge) ->
         edgeEQPred = (otherEdge) ->
             return (edge[0] == otherEdge[0] and edge[1] == otherEdge[1])
         util.removeAt(@edges, util.find(@edges, edgeEQPred))
 
-    compact: (remap) ->
+    compact: () ->
+        console.log("compacting")
+        remap = []
+        delta = 0
+        for i in [0...@nodes.length]
+            if @nodes[i].del
+                delta++
+            else
+                remap[i] = i - delta
+
+        console.log(remap)
+        
         for edge in @edges
             edge[0] = remap[edge[0]]
             edge[1] = remap[edge[1]]
 
-        remappedNodePositions = []
+        remappedNodes = []
         for i in [0..remap.length]
             if remap[i]?
-                remappedNodePositions[remap[i]] = @nodePositions[i]
+                remappedNodes[remap[i]] = @nodes[i]
                 
-        @nodePositions = remappedNodePositions
+        @nodes = remappedNodes
+        
+        return remap
         
 exports = this
 exports.GraphModel = GraphModel

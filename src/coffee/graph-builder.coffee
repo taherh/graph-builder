@@ -18,17 +18,13 @@ class GraphBuilder
     currActiveNode: null
     deleteMode: false
     nodeList: null
-    nodeDelList: null
     
     hoveredObj: null
-    
-    _idCtr: 0
     
     constructor: (@WIDTH, @HEIGHT, @RADIUS) ->
         Node.RADIUS = RADIUS
         @graph = new GraphModel()
         @nodeList = []
-        @nodeDelList = []
         
         @canvas = new fabric.Canvas('canvas')
         @canvas.setWidth(@WIDTH)
@@ -57,28 +53,6 @@ class GraphBuilder
         
         @canvas.on('object:over', @handleHoverOver)
         @canvas.on('object:out', @handleHoverOut)
-
-        
-        # setup custom handlers to listen to GraphBuilder events
-        # and update abstract graph model accordingly
-        @canvas.on('gb:new-node', (evt) =>
-            @graph.newNode(evt.x, evt.y)
-        )
-        @canvas.on('gb:new-edge', (evt) =>
-            @graph.addEdge([evt.srcNode, evt.dstNode])
-        )
-        @canvas.on('gb:del-node', (evt) =>
-            @graph.delNode(evt.nodeId)
-        )
-        @canvas.on('gb:del-edge', (evt) =>
-            @graph.delEdge([evt.src, evt.dst])
-        )
-        @canvas.on('gb:clear', (evt) =>
-            @graph.clear()
-        )
-        @canvas.on('gb:compact', (evt) =>
-            @graph.compact(evt.remap)
-        )
         
         @canvas.on(
                     'gb:new-node': @updateMatrix
@@ -118,7 +92,7 @@ class GraphBuilder
         edge.setDestNode(dstNode)
         edge.srcNode.addEdge(edge)
         dstNode.addEdge(edge)
-        
+        @graph.addEdge([edge.srcNode.id, edge.dstNode.id])
         @canvas.trigger('gb:new-edge',
                             srcNode: edge.srcNode.id
                             dstNode: edge.dstNode.id
@@ -202,8 +176,8 @@ class GraphBuilder
             @canvas.renderAll()
             
         else
-            edge = new Edge(node)
-            edge.display(@canvas)
+            edge = new Edge(node, @canvas)
+            edge.display()
             edge.sendBackwards()
         
             @activeEdge = edge
@@ -212,11 +186,12 @@ class GraphBuilder
 
     # add new node to graph
     addNode: (x, y) ->
-        node = new Node(@_idCtr++, x, y)
+        nodeId = @graph.newNode(x, y)
+        node = new Node(nodeId, x, y, @canvas)
         @nodeList.push(node)
-        node.display(@canvas)
+        node.display()
 
-        @canvas.trigger('gb:new-node', { nodeId: node.id, x: x, y: y })
+        @canvas.trigger('gb:new-node', { nodeId: nodeId, x: x, y: y })
 
     # delete a node or edge
     deleteGraphObj: (graphObj) ->
@@ -228,13 +203,14 @@ class GraphBuilder
             
     deleteNode: (node) ->
         node.remove()
+        @graph.delNode(node.id)
         @canvas.trigger('gb:del-node', { nodeId: node.id })
-        @nodeDelList.push(node)
         
         @canvas.renderAll()
 
     deleteEdge: (edge) ->
         edge.remove()
+        @graph.delEdge([edge.srcNode.id, edge.dstNode.id])
         @canvas.trigger('gb:del-edge',
                             src: edge.srcNode.id
                             dst: edge.dstNode.id
@@ -262,33 +238,16 @@ class GraphBuilder
     # compact the node ids (e.g., if there were any deletions)
     handleCompactGraph: (e) =>
         @cancelActiveEdge()
-        
-        for node in @nodeDelList
-            util.remove(@nodeList, node)
-            
-        @nodeDelList = []  # clear out the deletion list
-
-        remap = []
-        for i in [0...@nodeList.length]
-            node = @nodeList[i]
-            remap[node.id] = i
-            node.setId(i)
-
-        @_idCtr = @nodeList.length
+        remap = @graph.compact()
         @canvas.trigger('gb:compact', { remap: remap })
-    
         @canvas.renderAll()
 
-
-        
     # clear the graph
     handleClearGraph: (e) =>
         @cancelActiveEdge()
-        @canvas.clear()
-        @_idCtr = 0
-        @nodeList = []
-        @nodeDelList = []
+        @graph.clear()
         @canvas.trigger('gb:clear')
+        @canvas.clear()
     
     # handle keydown events
     handleKeyDown: (e) =>
@@ -298,7 +257,7 @@ class GraphBuilder
             when Keys.DEL
                 @enableDeleteMode()
 
-        return false
+        e.preventDefault()
     
     # handle keyup events
     handleKeyUp: (e) =>
@@ -306,7 +265,7 @@ class GraphBuilder
             when Keys.DEL
                 @disableDeleteMode()
                 
-        return false
+        e.preventDefault()
 
     # when user selects a set of nodes, don't show resize controls
     handleSelectionCreated: (evt) =>
