@@ -87,17 +87,17 @@ class GraphBuilder
                 return target
         )(canvas.findTarget)
     
-
-     completeEdge: (edge, dstNode) ->
+    
+    completeEdge: (edge, dstNode) ->
         edge.setDestNode(dstNode)
         edge.srcNode.addEdge(edge)
-        dstNode.addEdge(edge)
+        dstNode.addEdge(edge) unless edge.srcNode is dstNode
         @graph.addEdge([edge.srcNode.id, edge.dstNode.id])
         @canvas.trigger('gb:new-edge',
                             srcNode: edge.srcNode.id
                             dstNode: edge.dstNode.id
                         )
-        
+    
     handleHoverOver: (evt) =>
         # pass along hover over event to corresponding node or edge if appropriate
 
@@ -159,11 +159,13 @@ class GraphBuilder
         @setActiveNode(node)
 
         if @activeEdge
-            # no self loops yet
-            if @activeEdge.srcNode is node  
+            # self loop
+            if @activeEdge.srcNode is node
+                # kill linear edge
                 @cancelActiveEdge()
-                return
-            
+                # and replace with self-loop
+                @activeEdge = new SelfEdge(node, @canvas)
+                
             # check if this is a duplicate edge
             if @activeEdge.srcNode.hasEdge(@activeEdge.srcNode, node)
                 @cancelActiveEdge()
@@ -173,6 +175,7 @@ class GraphBuilder
             @activeEdge.sendToBack()
             @canvas.off('mouse:move')
             @activeEdge = null
+
             @canvas.renderAll()
             
         else
@@ -197,7 +200,7 @@ class GraphBuilder
     deleteGraphObj: (graphObj) ->
         if graphObj instanceof Node
             @deleteNode(graphObj)
-        if graphObj instanceof Edge
+        if graphObj instanceof Edge or graphObj instanceof SelfEdge
             @deleteEdge(graphObj)
 
             

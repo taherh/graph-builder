@@ -52,8 +52,6 @@ class GraphModel
             else
                 remap[i] = i - delta
 
-        console.log(remap)
-        
         for edge in @edges
             edge[0] = remap[edge[0]]
             edge[1] = remap[edge[1]]
