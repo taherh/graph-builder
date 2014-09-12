@@ -43,9 +43,6 @@ class Node
 
         @uiElt = grp
         
-        @canvas.on('gb:compact', @compactHandler)
-        @canvas.on('gb:clear', @remove)
-        
     setActive: ->
         @bringToFront()
         
@@ -116,12 +113,9 @@ class Node
         edge.remove(node: this) for edge in @edges
         @hide()
         @uiElt.destroy()
-        @canvas.off('gb:compact', @compactHandler)
-        @canvas.off('gb:clear', @remove)
-
         
-    compactHandler: (evt) =>
-        @setId(evt.remap[@id])
+    compact: (remap) =>
+        @setId(remap[@id])
 
 
 exports = this

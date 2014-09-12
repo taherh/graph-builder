@@ -208,6 +208,7 @@ class GraphBuilder
         node.remove()
         @graph.delNode(node.id)
         @canvas.trigger('gb:del-node', { nodeId: node.id })
+        @nodeList.splice(@nodeList.indexOf(node), 1)
         
         @canvas.renderAll()
 
@@ -242,6 +243,8 @@ class GraphBuilder
     handleCompactGraph: (e) =>
         @cancelActiveEdge()
         remap = @graph.compact()
+        for node in @nodeList
+            node.compact(remap)
         @canvas.trigger('gb:compact', { remap: remap })
         @canvas.renderAll()
 
@@ -250,7 +253,10 @@ class GraphBuilder
         @cancelActiveEdge()
         @graph.clear()
         @canvas.trigger('gb:clear')
+        for node in @nodeList
+            node.remove()
         @canvas.clear()
+        @nodeList = []
     
     # handle keydown events
     handleKeyDown: (e) =>
